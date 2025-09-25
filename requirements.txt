@@ -1,0 +1,6 @@
+Flask
+pandas
+openpyxl
+waitress
+pyinstaller
+bcrypt

@@ -1,0 +1,62 @@
+/* 全域樣式 */
+body {
+    background-color: #f8f9fa;
+}
+
+/* 座位表卡片樣式 */
+.student-card-wrapper {
+    cursor: grab;
+    transition: transform 0.2s ease-in-out;
+}
+
+.student-card-wrapper:active {
+    cursor: grabbing;
+    transform: scale(1.05);
+    z-index: 100;
+}
+
+.student-card {
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: box-shadow 0.2s;
+}
+
+.student-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+
+.student-photo {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid #eee;
+}
+
+.student-name {
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+
+.student-id {
+    font-size: 0.8rem;
+}
+
+.student-account {
+    font-size: 0.75rem;
+}
+
+/* SortableJS 拖曳時的 ghost 樣式 */
+.sortable-ghost {
+    opacity: 0.4;
+    background-color: #c8ebfb;
+    border: 1px dashed #007bff;
+}
+
+/* 登入頁面卡片 */
+.card.mt-5 {
+    border: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+

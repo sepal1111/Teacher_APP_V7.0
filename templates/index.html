@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+
+{% block title %}班級列表{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>班級列表</h1>
+    </div>
+
+    {% if classes %}
+        <div class="list-group">
+            {% for class_name in classes %}
+                <a href="{{ url_for('class_dashboard', class_name=class_name) }}" class="list-group-item list-group-item-action">
+                    {{ class_name }}
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-warning" role="alert">
+            目前沒有任何班級資料。請先到 <a href="{{ url_for('settings') }}">系統設定</a> 頁面匯入學生名單。
+        </div>
+    {% endif %}
+{% endblock %}

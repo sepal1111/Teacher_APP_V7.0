@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+
+{% block title %}系統設定{% endblock %}
+
+{% block content %}
+<h1>系統設定</h1>
+<hr>
+
+<div class="row">
+    <!-- 學生資料匯入 -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                學生資料匯入
+            </div>
+            <div class="card-body">
+                <p class="card-text">請上傳 Excel (.xlsx) 檔案。檔案中必須包含 "學號"、"姓名"、"班級"、"帳號" 四個欄位。</p>
+                <p class="text-danger"><strong>注意：</strong> 重新匯入將會清空所有現存的學生、成績與點名資料！</p>
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="student_file" class="form-label">選擇學生名單檔案</label>
+                        <input class="form-control" type="file" id="student_file" name="student_file" accept=".xlsx" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">開始匯入</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 變更密碼 -->
+    <div class="col-md-6 mt-4 mt-md-0">
+        <div class="card">
+            <div class="card-header">
+                變更密碼
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">新密碼</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">確認新密碼</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">更新密碼</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
