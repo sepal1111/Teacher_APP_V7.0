@@ -1,31 +1,45 @@
 <div class="container-fluid py-3">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3>座位表</h3>
-        <div>
-            <!-- 將來可以加入 "隨機排列" 或 "儲存佈局" 等按鈕 -->
-            <button class="btn btn-secondary btn-sm" disabled>隨機排列 (功能開發中)</button>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-success btn-sm" id="save-seating-chart-btn">儲存座位表</button>
+            <div class="btn-group" role="group" aria-label="Layout switcher">
+                <input type="radio" class="btn-check" name="layout-switch" id="layout-6x6" autocomplete="off" {% if layout == '6x6' %}checked{% endif %} data-layout="6x6">
+                <label class="btn btn-outline-primary" for="layout-6x6">6 x 6</label>
+
+                <input type="radio" class="btn-check" name="layout-switch" id="layout-8x5" autocomplete="off" {% if layout == '8x5' %}checked{% endif %} data-layout="8x5">
+                <label class="btn btn-outline-primary" for="layout-8x5">8 x 5</label>
+            </div>
         </div>
     </div>
 
-    <div id="seating-chart-container" class="row g-2">
-        {% for student in students %}
-        <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 student-card-wrapper" data-student-id="{{ student['id'] }}">
-            <div class="card h-100 text-center student-card">
-                <div class="card-body d-flex flex-column justify-content-center">
-                    <img src="{{ url_for('static', filename='photos/' + student['student_id'] + '.jpg') }}" 
-                         alt="{{ student['name'] }}"
-                         class="student-photo mx-auto mb-2"
-                         onerror="this.src='https://placehold.co/100x100/EFEFEF/AAAAAA?text={{ student['name'][0] }}'; this.onerror=null;">
-                    <div class="student-name">{{ student['name'] }}</div>
-                    <div class="student-id text-muted small">{{ student['student_id'] }}</div>
-                    <div class="student-account text-muted small fst-italic">{{ student['account'] }}</div>
-                </div>
-            </div>
+    <div class="seating-chart-grid-wrapper">
+        <p class="text-muted small text-center mb-1">講台</p>
+        <div id="seating-chart-grid" class="seating-chart-grid layout-{{ layout }}">
+            {% for r in range(seating_grid|length) %}
+                {% for c in range(seating_grid[r]|length) %}
+                    {% set student = seating_grid[r][c] %}
+                    <div class="seat-slot" data-row="{{ r }}" data-col="{{ c }}">
+                        {% if student %}
+                            <div class="student-card-wrapper" data-student-id="{{ student['id'] }}">
+                                <div class="card h-100 text-center student-card">
+                                    <div class="card-body d-flex flex-column justify-content-center p-2">
+                                        <img src="{{ url_for('static', filename='photos/' + student['student_id'] + '_' + student['name'] + '.JPG') }}" 
+                                             alt="{{ student['name'] }}"
+                                             class="student-photo mx-auto mb-1"
+                                             onerror="this.src='https://placehold.co/100x100/EFEFEF/AAAAAA?text={{ student['name'][0] }}'; this.onerror=null;">
+                                        <div class="student-name">{{ student['name'] }}</div>
+                                        <div class="student-id text-muted small">{{ student['student_id'] }}</div>
+                                        <div class="student-account text-muted small fst-italic">{{ student['account'] }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% endfor %}
         </div>
-        {% else %}
-        <p>此班級沒有學生資料。</p>
-        {% endfor %}
     </div>
-    <p class="text-muted mt-3 small">提示：您可以直接用滑鼠拖曳學生的卡片來調整座位順序。</p>
+    <p class="text-muted mt-2 small">提示：您可以直接拖曳學生卡片來交換位置。完成後請點擊「儲存座位表」。</p>
 </div>
 

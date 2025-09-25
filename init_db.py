@@ -52,8 +52,17 @@ def setup_database():
             student_id TEXT NOT NULL UNIQUE,
             name TEXT NOT NULL,
             class_name TEXT NOT NULL,
-            account TEXT, -- 新增帳號欄位
-            seat_order INTEGER DEFAULT 0
+            account TEXT,
+            seat_row INTEGER, -- 座位 - 列
+            seat_col INTEGER  -- 座位 - 欄
+        );
+        """
+
+        # 班級設定表
+        sql_create_class_settings_table = """
+        CREATE TABLE IF NOT EXISTS class_settings (
+            class_name TEXT PRIMARY KEY,
+            seating_layout TEXT NOT NULL DEFAULT '6x6'
         );
         """
         
@@ -96,6 +105,7 @@ def setup_database():
         
         create_table(conn, sql_create_settings_table)
         create_table(conn, sql_create_students_table)
+        create_table(conn, sql_create_class_settings_table)
         create_table(conn, sql_create_grade_items_table)
         create_table(conn, sql_create_grades_table)
         create_table(conn, sql_create_attendance_table)

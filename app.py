@@ -1,7 +1,7 @@
 import sys
 import os
 import pandas as pd
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
 from waitress import serve
 import database as db
@@ -64,8 +64,50 @@ def index():
 @app.route('/class/<class_name>')
 def class_dashboard(class_name):
     """ 班級主控台 """
-    students = db.get_students_by_class(class_name)
-    return render_template('class_dashboard.html', students=students, class_name=class_name)
+    settings = db.get_class_settings(class_name)
+    layout = settings['seating_layout']
+    rows, cols = map(int, layout.split('x'))
+
+    students = db.get_all_students_for_class(class_name)
+    
+    # 如果學生還沒有被排過座位，就進行初始排列
+    if students and students[0]['seat_row'] is None:
+        all_seats = []
+        for r in range(rows):
+            for c in range(cols):
+                all_seats.append((r, c))
+        
+        assignments = []
+        num_students_to_seat = min(len(students), len(all_seats))
+        for i in range(num_students_to_seat):
+            student = students[i]
+            seat = all_seats[i]
+            assignments.append((seat[0], seat[1], student['id']))
+        
+        if assignments:
+            db.batch_update_seat_positions(assignments)
+        
+        # 重新獲取學生資料以包含座位資訊
+        students = db.get_all_students_for_class(class_name)
+
+    # 建立一個二維陣列來代表座位表
+    seating_grid = [[None for _ in range(cols)] for _ in range(rows)]
+    for student in students:
+        if student['seat_row'] is not None and student['seat_col'] is not None:
+             # 防止資料庫中的位置超出當前佈局範圍
+            if 0 <= student['seat_row'] < rows and 0 <= student['seat_col'] < cols:
+                seating_grid[student['seat_row']][student['seat_col']] = dict(student)
+
+    grade_items = db.get_grade_items()
+    
+    return render_template(
+        'class_dashboard.html', 
+        class_name=class_name, 
+        grade_items=grade_items,
+        seating_grid=seating_grid,
+        layout=layout,
+        students=students
+    )
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
@@ -111,17 +153,86 @@ def settings():
 
 # --- API 路由 (用於 JavaScript 互動) ---
 
-@app.route('/api/update_seat_order', methods=['POST'])
-def api_update_seat_order():
-    """ API: 更新座位順序 """
+@app.route('/api/save_seating_chart', methods=['POST'])
+def api_save_seating_chart():
+    """ API: 儲存整個座位表 """
     data = request.get_json()
-    student_order = data.get('order')
-    if student_order:
-        for index, student_db_id in enumerate(student_order):
-            db.update_seat_order(student_db_id, index)
-        return {'status': 'success'}, 200
-    return {'status': 'error', 'message': 'Missing order data'}, 400
+    assignments_data = data.get('assignments')
 
+    if not assignments_data:
+        return jsonify({'status': 'error', 'message': '缺少座位資料'}), 400
+
+    assignments_tuples = []
+    for assign in assignments_data:
+        # 確保所有需要的鍵都存在
+        if 'student_id' in assign and 'row' in assign and 'col' in assign:
+            assignments_tuples.append((assign['row'], assign['col'], assign['student_id']))
+    
+    if assignments_tuples:
+        db.batch_update_seat_positions(assignments_tuples)
+
+    return jsonify({'status': 'success'})
+
+@app.route('/api/update_layout', methods=['POST'])
+def api_update_layout():
+    """ API: 更新座位表佈局 """
+    data = request.get_json()
+    class_name = data.get('class_name')
+    layout = data.get('layout')
+    if class_name and layout in ['6x6', '8x5']:
+        db.update_class_layout(class_name, layout)
+        return jsonify({'status': 'success'})
+    return jsonify({'status': 'error', 'message': 'Invalid data'}), 400
+
+@app.route('/api/grade_items', methods=['GET', 'POST'])
+def api_manage_grade_items():
+    """ API: 管理成績項目 """
+    if request.method == 'POST':
+        data = request.get_json()
+        name = data.get('name')
+        item_type = data.get('type')
+        if name and item_type:
+            db.add_grade_item(name, item_type)
+            return jsonify({'status': 'success', 'message': f'項目 "{name}" 已新增。'})
+        return jsonify({'status': 'error', 'message': '缺少名稱或類型。'}), 400
+    
+    items = db.get_grade_items()
+    return jsonify([dict(row) for row in items])
+
+@app.route('/api/grades/<int:item_id>', methods=['GET'])
+def api_get_grades(item_id):
+    """ API: 根據班級和項目取得成績 """
+    class_name = request.args.get('class_name')
+    if not class_name:
+        return jsonify({'status': 'error', 'message': '未提供班級名稱'}), 400
+        
+    students = db.get_all_students_for_class(class_name)
+    student_ids = [s['id'] for s in students]
+    
+    grades = db.get_student_grades_by_item(student_ids, item_id)
+    
+    return jsonify(grades)
+
+@app.route('/api/grades/update', methods=['POST'])
+def api_update_grade():
+    """ API: 更新單一筆成績 """
+    data = request.get_json()
+    student_db_id = data.get('student_db_id')
+    item_id = data.get('item_id')
+    score = data.get('score')
+    
+    if student_db_id is None or item_id is None:
+        return jsonify({'status': 'error', 'message': '缺少學生ID或項目ID'}), 400
+        
+    try:
+        if score is not None and score != '':
+            float(score)
+        db.update_or_insert_grade(student_db_id, item_id, score)
+        return jsonify({'status': 'success'})
+    except ValueError:
+        return jsonify({'status': 'error', 'message': '分數格式不正確'}), 400
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # --- 主程式進入點 ---
 

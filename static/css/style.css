@@ -60,3 +60,61 @@ body {
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
 }
 
+/* 新座位表樣式 */
+.seating-chart-grid {
+    display: grid;
+    gap: 8px;
+    border: 1px solid #dee2e6;
+    background-color: #fdfdfd;
+    padding: 8px;
+    border-radius: 0.5rem;
+}
+
+.seating-chart-grid.layout-6x6 {
+    grid-template-columns: repeat(6, 1fr);
+}
+
+.seating-chart-grid.layout-8x5 {
+    grid-template-columns: repeat(8, 1fr);
+}
+
+.seat-slot {
+    background-color: #e9ecef;
+    border: 2px dashed #ced4da;
+    border-radius: 0.5rem;
+    min-height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #adb5bd;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.seat-slot .student-card {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* When dragging over an empty slot */
+.seat-slot.sortable-drag {
+    background-color: #c8ebfb;
+    border-color: #007bff;
+}
+
+/* Make student photos slightly smaller in grid */
+.seat-slot .student-photo {
+    width: 50px;
+    height: 50px;
+}
+.seat-slot .student-name {
+    font-size: 0.85rem;
+}
+.seat-slot .student-id, .seat-slot .student-account {
+    display: none; /* Hide extra details in grid view for cleanliness */
+}
+

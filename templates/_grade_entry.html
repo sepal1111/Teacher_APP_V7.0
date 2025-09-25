@@ -1,15 +1,57 @@
 <div class="container-fluid py-3">
-    <h3>成績管理</h3>
-    <p class="text-muted">此功能正在開發中。</p>
-    
-    <!-- 未來功能規劃 -->
-    <div class="alert alert-info">
-        <h5>未來功能：</h5>
-        <ul>
-            <li>自訂「平時評量」與「定期評量」項目。</li>
-            <li>根據新竹市評量規定自動計算學期成績。</li>
-            <li>管理補考成績。</li>
-            <li>清晰的成績表格展示。</li>
-        </ul>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>成績管理</h3>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addGradeItemModal">
+            新增成績項目
+        </button>
     </div>
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label for="grade-item-select" class="form-label">選擇評量項目：</label>
+            <select id="grade-item-select" class="form-select">
+                <option value="">請選擇...</option>
+                {% if grade_items %}
+                    {% for item in grade_items %}
+                        <option value="{{ item.id }}">{{ item.name }} ({{ item.type }})</option>
+                    {% endfor %}
+                {% endif %}
+            </select>
+        </div>
+    </div>
+    
+    <div id="grade-entry-table-container">
+        <div class="alert alert-info">請先從上方選擇一個評量項目以輸入成績。</div>
+    </div>
+
+</div>
+
+<div class="modal fade" id="addGradeItemModal" tabindex="-1" aria-labelledby="addGradeItemModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addGradeItemModalLabel">新增成績項目</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="add-grade-item-form">
+            <div class="mb-3">
+                <label for="item-name" class="form-label">項目名稱</label>
+                <input type="text" class="form-control" id="item-name" required>
+            </div>
+            <div class="mb-3">
+                <label for="item-type" class="form-label">項目類型</label>
+                <select class="form-select" id="item-type" required>
+                    <option value="平時評量">平時評量</option>
+                    <option value="定期評量">定期評量</option>
+                </select>
+            </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+        <button type="button" class="btn btn-primary" id="save-grade-item-btn">儲存</button>
+      </div>
+    </div>
+  </div>
 </div>

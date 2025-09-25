@@ -55,23 +55,51 @@ def get_all_classes():
     conn.close()
     return [c['class_name'] for c in classes]
 
-def get_students_by_class(class_name):
-    """ 根據班級名稱取得所有學生，並按座位順序排列 """
+def get_all_students_for_class(class_name):
+    """ 根據班級名稱取得所有學生，按學號排序 """
     conn = get_db_connection()
-    students = conn.execute('SELECT * FROM students WHERE class_name = ? ORDER BY seat_order, student_id', 
-                            (class_name,)).fetchall()
+    students = conn.execute(
+        'SELECT * FROM students WHERE class_name = ? ORDER BY student_id',
+        (class_name,)
+    ).fetchall()
     conn.close()
     return students
 
-def update_seat_order(student_db_id, new_order):
-    """ 更新學生的座位順序 """
+def batch_update_seat_positions(assignments):
+    """
+    批次更新學生座位.
+    assignments 是一個元組列表: (seat_row, seat_col, student_db_id)
+    """
     conn = get_db_connection()
-    conn.execute('UPDATE students SET seat_order = ? WHERE id = ?', (new_order, student_db_id))
+    conn.executemany('UPDATE students SET seat_row = ?, seat_col = ? WHERE id = ?', assignments)
+    conn.commit()
+    conn.close()
+
+# --- 班級設定相關 ---
+
+def get_class_settings(class_name):
+    """ 取得班級設定 """
+    conn = get_db_connection()
+    settings = conn.execute('SELECT * FROM class_settings WHERE class_name = ?', (class_name,)).fetchone()
+    if not settings:
+        # 如果沒有設定，就建立一個預設的
+        conn.execute('INSERT INTO class_settings (class_name, seating_layout) VALUES (?, ?)', (class_name, '6x6'))
+        conn.commit()
+        settings = conn.execute('SELECT * FROM class_settings WHERE class_name = ?', (class_name,)).fetchone()
+    conn.close()
+    return settings
+
+def update_class_layout(class_name, layout):
+    """ 更新班級的座位表佈局 """
+    conn = get_db_connection()
+    # 切換佈局時，同時清除所有座位安排，因為位置無法轉移
+    conn.execute('UPDATE students SET seat_row = NULL, seat_col = NULL WHERE class_name = ?', (class_name,))
+    conn.execute('UPDATE class_settings SET seating_layout = ? WHERE class_name = ?', (layout, class_name))
     conn.commit()
     conn.close()
 
 
-# --- 成績相關 (此處僅為範例，需擴充) ---
+# --- 成績相關 ---
 
 def add_grade_item(name, type, parent_id=None, percentage=None):
     """ 新增成績項目 """
@@ -87,6 +115,46 @@ def get_grade_items():
     items = conn.execute('SELECT * FROM grade_items ORDER BY type, name').fetchall()
     conn.close()
     return items
+
+def get_student_grades_by_item(student_db_ids, item_id):
+    """ 根據學生ID列表和成績項目ID取得成績 """
+    conn = get_db_connection()
+    # 建立一個 {student_id: score} 的字典
+    grades = {}
+    if not student_db_ids:
+        return grades
+        
+    placeholders = ','.join('?' for _ in student_db_ids)
+    query = f'SELECT student_db_id, score FROM grades WHERE item_id = ? AND student_db_id IN ({placeholders})'
+    
+    params = [item_id] + student_db_ids
+    results = conn.execute(query, params).fetchall()
+    
+    for row in results:
+        grades[row['student_db_id']] = row['score']
+        
+    conn.close()
+    return grades
+
+def update_or_insert_grade(student_db_id, item_id, score):
+    """ 新增或更新一個學生的成績 """
+    conn = get_db_connection()
+    # 檢查成績是否已存在
+    existing = conn.execute('SELECT id FROM grades WHERE student_db_id = ? AND item_id = ?', 
+                            (student_db_id, item_id)).fetchone()
+    
+    if score == '' or score is None:
+        # 如果分數是空的，則刪除紀錄
+        if existing:
+            conn.execute('DELETE FROM grades WHERE id = ?', (existing['id'],))
+    else:
+        if existing:
+            conn.execute('UPDATE grades SET score = ? WHERE id = ?', (score, existing['id']))
+        else:
+            conn.execute('INSERT INTO grades (student_db_id, item_id, score) VALUES (?, ?, ?)',
+                         (student_db_id, item_id, score))
+    conn.commit()
+    conn.close()
     
 # --- 點名與日常表現相關 (此處僅為範例，需擴充) ---
 
@@ -102,6 +170,4 @@ def record_attendance(student_db_id, date, status, notes=""):
                      (student_db_id, date, status, notes))
     conn.commit()
     conn.close()
-
-# 你可以在此繼續添加更多與資料庫互動的函式...
 
